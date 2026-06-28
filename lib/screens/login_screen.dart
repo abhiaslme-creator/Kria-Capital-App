@@ -67,13 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(Icons.account_balance, size: 72, color: Colors.indigo),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'KRIA CAPITAL',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.indigo),
-                  ),
+                  Image.asset('assets/logo.png', height: 150),
                   const SizedBox(height: 32),
                   TextFormField(
                     controller: _emailController,
