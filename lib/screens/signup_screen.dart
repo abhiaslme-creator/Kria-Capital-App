@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../firebase_auth_service.dart';
+import 'home_webview_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -10,7 +12,6 @@ class SignupScreen extends StatefulWidget {
 
 class _SignupScreenState extends State<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
@@ -18,7 +19,6 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   void dispose() {
-    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -26,36 +26,26 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Future<void> _signup() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isLoading = true);
-    try {
-      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-      await credential.user?.updateDisplayName(_nameController.text.trim());
-      // After successful signup, AuthGate in main.dart automatically
-      // shows the website (user is signed in).
-      if (mounted) Navigator.pop(context);
-    } on FirebaseAuthException catch (e) {
-      _showError(_friendlyError(e.code));
-    } catch (e) {
-      _showError('Kuch galat ho gaya. Phir try karein.');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
+    final result = await FirebaseAuthService.signUp(
+      _emailController.text.trim(),
+      _passwordController.text.trim(),
+    );
+    if (!mounted) return;
+    setState(() => _isLoading = false);
 
-  String _friendlyError(String code) {
-    switch (code) {
-      case 'email-already-in-use':
-        return 'Yeh email already registered hai. Login karein.';
-      case 'invalid-email':
-        return 'Email sahi format me daalen.';
-      case 'weak-password':
-        return 'Password kam se kam 6 characters ka hona chahiye.';
-      default:
-        return 'Sign up nahi ho paaya: $code';
+    if (result.success) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('idToken', result.idToken ?? '');
+      await prefs.setString('email', result.email ?? '');
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeWebViewScreen()),
+        (route) => false,
+      );
+    } else {
+      _showError(result.errorMessage ?? 'Sign up nahi ho paaya.');
     }
   }
 
@@ -78,19 +68,6 @@ class _SignupScreenState extends State<SignupScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  TextFormField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Naam',
-                      prefixIcon: Icon(Icons.person_outline),
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) return 'Naam daalen';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
