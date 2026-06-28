@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'login_screen.dart';
 
-// IMPORTANT: This is your website URL.
-// Jab bhi aap blogspot par naya post/update karenge,
-// app me wo automatically dikh jayega - kyunki yeh
-// seedha aapki live website load karta hai.
 const String kWebsiteUrl = 'https://kriacapitalofficial.blogspot.com/';
 
 class HomeWebViewScreen extends StatefulWidget {
@@ -34,8 +31,14 @@ class _HomeWebViewScreenState extends State<HomeWebViewScreen> {
   }
 
   Future<void> _logout() async {
-    await FirebaseAuth.instance.signOut();
-    // AuthGate in main.dart automatically shows LoginScreen after this.
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
   }
 
   @override
@@ -44,16 +47,8 @@ class _HomeWebViewScreenState extends State<HomeWebViewScreen> {
       appBar: AppBar(
         title: const Text('KRIA CAPITAL'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh',
-            onPressed: () => _controller.reload(),
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
-            onPressed: _logout,
-          ),
+          IconButton(icon: const Icon(Icons.refresh), tooltip: 'Refresh', onPressed: () => _controller.reload()),
+          IconButton(icon: const Icon(Icons.logout), tooltip: 'Logout', onPressed: _logout),
         ],
       ),
       body: Stack(
