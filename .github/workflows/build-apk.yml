@@ -28,11 +28,6 @@ jobs:
         run: |
           sed -i '/<manifest /a\    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
 
-      - name: Update Kotlin version (fix Gradle build error)
-        run: |
-          sed -i 's/id "org.jetbrains.kotlin.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "2.1.0"/' android/settings.gradle || true
-          sed -i "s/ext.kotlin_version = '[^']*'/ext.kotlin_version = '2.1.0'/" android/build.gradle || true
-
       - name: Get dependencies
         run: flutter pub get
 
