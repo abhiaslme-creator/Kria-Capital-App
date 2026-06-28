@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_webview_screen.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+void main() {
   runApp(const KriaCapitalApp());
 }
 
@@ -26,33 +23,46 @@ class KriaCapitalApp extends StatelessWidget {
           foregroundColor: Colors.white,
         ),
       ),
-      // AuthGate decides whether to show Login screen or the Website,
-      // based on whether the user is already logged in.
-      home: const AuthGate(),
+      home: const SplashCheck(),
     );
   }
 }
 
-class AuthGate extends StatelessWidget {
-  const AuthGate({super.key});
+class SplashCheck extends StatefulWidget {
+  const SplashCheck({super.key});
+
+  @override
+  State<SplashCheck> createState() => _SplashCheckState();
+}
+
+class _SplashCheckState extends State<SplashCheck> {
+  @override
+  void initState() {
+    super.initState();
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('idToken');
+    if (!mounted) return;
+    if (token != null && token.isNotEmpty) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeWebViewScreen()),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-        if (snapshot.hasData) {
-          // User already logged in -> show the website
-          return const HomeWebViewScreen();
-        }
-        // Not logged in -> show login screen
-        return const LoginScreen();
-      },
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
     );
   }
 }
