@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../firebase_auth_service.dart';
+import 'home_webview_screen.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -25,62 +27,31 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isLoading = true);
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-      // Navigation is handled automatically by AuthGate in main.dart
-    } on FirebaseAuthException catch (e) {
-      _showError(_friendlyError(e.code));
-    } catch (e) {
-      _showError('Kuch galat ho gaya. Phir try karein.');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
+    final result = await FirebaseAuthService.signIn(
+      _emailController.text.trim(),
+      _passwordController.text.trim(),
+    );
+    if (!mounted) return;
+    setState(() => _isLoading = false);
 
-  Future<void> _forgotPassword() async {
-    if (_emailController.text.trim().isEmpty) {
-      _showError('Pehle apna email daalen.');
-      return;
-    }
-    try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(
-        email: _emailController.text.trim(),
+    if (result.success) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('idToken', result.idToken ?? '');
+      await prefs.setString('email', result.email ?? '');
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeWebViewScreen()),
       );
-      _showMessage('Password reset link aapke email par bhej diya gaya hai.');
-    } on FirebaseAuthException catch (e) {
-      _showError(_friendlyError(e.code));
-    }
-  }
-
-  String _friendlyError(String code) {
-    switch (code) {
-      case 'user-not-found':
-        return 'Yeh email registered nahi hai. Pehle sign up karein.';
-      case 'wrong-password':
-        return 'Password galat hai.';
-      case 'invalid-email':
-        return 'Email sahi format me daalen.';
-      case 'invalid-credential':
-        return 'Email ya password galat hai.';
-      default:
-        return 'Login nahi ho paaya: $code';
+    } else {
+      _showError(result.errorMessage ?? 'Login nahi ho paaya.');
     }
   }
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
-  }
-
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.green),
     );
   }
 
@@ -137,14 +108,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       return null;
                     },
                   ),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: _forgotPassword,
-                      child: const Text('Password bhool gaye?'),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 24),
                   _isLoading
                       ? const Center(child: CircularProgressIndicator())
                       : ElevatedButton(
