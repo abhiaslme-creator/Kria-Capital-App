@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 // Apna Firebase "Web API Key" yahan paste karna hai (baad me Step 8 me batayenge).
-const String kFirebaseApiKey = 'YOUR_FIREBASE_WEB_API_KEY_HERE';
+const String kFirebaseApiKey = 'AIzaSyB12AdtvVVL8T13GPHDIFzaNO4_KIAw80w';
 
 class AuthResult {
   final bool success;
